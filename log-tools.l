@@ -192,7 +192,9 @@
   (let ( (hrpsys-param-fname (concatenate string param-dir "hrpsys-param.l")) )
   (setq *st-param* (send *ri* :get-st-param))
   (setq *abc-param* (send *ri* :get-auto-balancer-param))
-  (dump-loadable-structure hrpsys-param-fname *st-param* *abc-param*)
+  (setq *gg-param* (send *ri* :get-gait-generator-param))
+  (setq *rfu-param* (send *ri* :get-reference-force-updater-param :arms))
+  (dump-loadable-structure hrpsys-param-fname *st-param* *abc-param* *rfu-param*)
   ))
 
 ;; プロットをアニメーションで表示
