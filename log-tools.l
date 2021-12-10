@@ -171,9 +171,9 @@
             )
            (unix:system (concatenate string "scp " uname "@" machine-name ":/tmp/" org-fname "* " path))
            (when shm-log-saved (unix:system (concatenate string "scp " uname "@" machine-name ":/tmp/shm.log " path org-fname ".log")))
-           (when save-param (save-param :param-dir path))
            )
          )
+        (when save-param (save-param :param-dir path))
         (unix:system (concatenate string "find " path "| rename 's/" org-fname "/" fname "/'"))
         (unix:system (concatenate string "find " path "| rename 's/" (send *robot* :name) "\\(Robot\\)/RobotHardware/'" ));; for old choreonoid log
         (unix:system (concatenate string "find " path "| rename 's/RobotHardware_choreonoid0/RobotHardware0/'" ));; for choreonoid log
