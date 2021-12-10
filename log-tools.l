@@ -383,8 +383,10 @@
     (setq idx start-idx)
     (unless (boundp '*ref-robot*)
       (setq *ref-robot* (instance (class *robot*) :init))
-      (send-all (send-all (flatten (send-all (send *ref-robot* :links) :get-val 'geometry::bodies)) :glvertices) :set-color (float-vector 0 0 1) 0.3)
-      (send-all (send-all (flatten (send-all (send *robot* :links) :get-val 'geometry::bodies)) :glvertices) :set-color (float-vector 1 0 0) 0.3)
+      ;; (send-all (send-all (flatten (send-all (send *ref-robot* :links) :get-val 'geometry::bodies)) :glvertices) :set-color (float-vector 0 0 1) 0.3)
+      ;; (send-all (send-all (flatten (send-all (send *robot* :links) :get-val 'geometry::bodies)) :glvertices) :set-color (float-vector 1 0 0) 0.3)
+      (set-all-robot-link-color *ref-robot* (float-vector 0 0 1) :alpha 0.3)
+      (set-all-robot-link-color *robot*     (float-vector 1 0 0) :alpha 0.3)
       (objects (list *robot* *ref-robot*)))
 
     (send *robot* :reset-pose)
@@ -403,11 +405,14 @@
      ;; (send *robot* :fix-leg-to-coords (send rs :root-coords))
 
      (send *ref-robot* :angle-vector (send rs :get :auto-balancer-reference-vector))
+     ;; (send *ref-robot* :angle-vector (send rs :reference-angle-vector))
+     ;; (send *ref-robot* :angle-vector (send rs :angle-vector))
      (send *ref-robot* :move-coords (send rs :get :auto-balancer-reference-root-coords) (car (send *ref-robot* :links))) ;; root height 0
      (send (send rs :get :auto-balancer-reference-root-coords) :draw-on :flush t)
 
      (send *robot* :angle-vector (send rs :angle-vector))
-     (send *robot* :move-coords (send (send (send rs :get :imucoords) :inverse-transformation) :transform (make-coords :rpy (list (deg2rad 180) 0 0))) (car (send *robot* :links)))
+     ;; (send *robot* :move-coords (send (send (send rs :get :imucoords) :inverse-transformation) :transform (make-coords :rpy (list (deg2rad 180) 0 0))) (car (send *robot* :links)))
+     (send *robot* :newcoords (send rs :root-coords))
 
      ;; move robot for foot position adjusting
      (send *robot* :translate (v- (send (send *ref-robot* :lleg :end-coords) :worldpos) (send (send *robot* :lleg :end-coords) :worldpos)) :world)
@@ -428,16 +433,26 @@
       (reduce #'(lambda (coord0 coord1)  (midcoords (/ 1.0 (incf n)) coord0 coord1)) coords-list))
     ))
 
+(defun set-all-robot-link-color (robot color &key (alpha 0.3))
+  ;; (send-all (send-all (flatten (send-all (send robot :links) :get-val 'geometry::bodies)) :glvertices) :set-color color alpha)
+  (mapc #'(lambda (glbody)
+	    (if (eq (class glbody) collada-body) (send (send glbody :glvertices) :set-color color alpha)))
+	(flatten (send-all (send robot :links) :get-val 'geometry::bodies)))
+  )
+
 (defun create-ref-com-robot (&key (ref-color #f(0 0 1)) (com-color #f(0 1 0)) (act-color #f(1 0 0)))
   (unless (boundp '*ref-robot*)
     (setq *ref-robot* (instance (class *robot*) :init))
-    (send-all (send-all (flatten (send-all (send *ref-robot* :links) :get-val 'geometry::bodies)) :glvertices) :set-color ref-color 0.3)
-    (send-all (send-all (flatten (send-all (send *robot* :links) :get-val 'geometry::bodies)) :glvertices) :set-color act-color 0.3)
+    ;; (send-all (send-all (flatten (send-all (send *ref-robot* :links) :get-val 'geometry::bodies)) :glvertices) :set-color ref-color 0.3)
+    ;; (send-all (send-all (flatten (send-all (send *robot* :links) :get-val 'geometry::bodies)) :glvertices) :set-color act-color 0.3)
+    (set-all-robot-link-color *ref-robot* ref-color :alpha 0.3)
+    (set-all-robot-link-color *robot*     act-color :alpha 0.3)
     ;; (objects (list *robot* *ref-robot*))
     )
   (unless (boundp '*com-robot*)
     (setq *com-robot* (instance (class *robot*) :init))
-    (send-all (send-all (flatten (send-all (send *com-robot* :links) :get-val 'geometry::bodies)) :glvertices) :set-color com-color 0.3))
+    ;; (send-all (send-all (flatten (send-all (send *com-robot* :links) :get-val 'geometry::bodies)) :glvertices) :set-color com-color 0.3))
+    (set-all-robot-link-color *com-robot* com-color :alpha 0.3))
   )
 
 (defun get-nearest-point (target-point target-face)
