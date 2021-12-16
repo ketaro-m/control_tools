@@ -486,7 +486,8 @@
 (defun get-contact-state-list (rs &key (fz-thresh 20) (frame) &allow-other-keys)
   (cond
    ((equal frame :ref) (mapcar #'(lambda (state-int) (= state-int 1)) (concatenate cons (send rs :get :auto-balancer-contact-states))))
-   ((equal frame :act) (mapcar #'(lambda (limb) (> (elt (send rs :get (read-from-string (format nil "~a-off-force-vector" limb))) 2) fz-thresh)) '(:rleg :lleg :rarm :larm)))))
+   ;; ((equal frame :act) (mapcar #'(lambda (limb) (> (elt (send rs :get (read-from-string (format nil "~a-off-force-vector" limb))) 2) fz-thresh)) '(:rleg :lleg :rarm :larm)))))
+   ((equal frame :act) (mapcar #'(lambda (limb) (and (substringp "leg" (format nil "~s" limb)) (> (elt (send rs :get (read-from-string (format nil "~a-off-force-vector" limb))) 2) fz-thresh))) '(:rleg :lleg :rarm :larm)))))
 
 (defun get-contact-limbs (rs &rest args &key &allow-other-keys)
   (remove nil (mapcar #'(lambda (limb contact-state) (if contact-state limb)) '(:rleg :lleg :rarm :larm) (apply #'get-contact-state-list rs args))))
@@ -652,7 +653,8 @@
            (mapcar #'(lambda (limb) (send (make-coords :pos (get-cop advance-rs limb :world :fz-thre fz-thresh)) :draw-on :flush nil :size 50 :color #f(1 1 0))) prev-act-contact-limbs)
 
            (send *com-robot* :angle-vector (send rs :reference-angle-vector))
-           (send *com-robot* :move-coords (make-coords :rpy (map float-vector #'deg2rad (send (elt *rs-list* 1000) :get :stabilizer-current-base-rpy))) (car (send *com-robot* :links)))
+           ;; (send *com-robot* :move-coords (make-coords :rpy (map float-vector #'deg2rad (send (elt *rs-list* 1000) :get :stabilizer-current-base-rpy))) (car (send *com-robot* :links)))
+           (send *com-robot* :move-coords (send (send (send rs :get :auto-balancer-reference-root-coords) :inverse-transformation) :transformation abc-offset-tf) (car (send *com-robot* :links)))
            (move-by-foot-step *com-robot* prev-act-contact-coords prev-act-contact-limbs act-contact-limbs)
            (when (and (not landing-idx) takeoff-idx)
              (setq landing-idx idx)
@@ -678,7 +680,8 @@
          (send *robot* :move-coords (send rs :root-coords) (car (send *robot* :links)))
          (send *robot* :translate (v- (car (last act-cm-list)) (send *robot* :centroid)) :world)
          (send *com-robot* :angle-vector (send rs :reference-angle-vector))
-         (send *com-robot* :move-coords (make-coords :rpy (map float-vector #'deg2rad (send (elt *rs-list* 1000) :get :stabilizer-current-base-rpy))) (car (send *com-robot* :links)))
+         ;; (send *com-robot* :move-coords (make-coords :rpy (map float-vector #'deg2rad (send (elt *rs-list* 1000) :get :stabilizer-current-base-rpy))) (car (send *com-robot* :links)))
+         (send *com-robot* :move-coords (send (send (send rs :get :auto-balancer-reference-root-coords) :inverse-transformation) :transformation abc-offset-tf) (car (send *com-robot* :links)))
          (send *com-robot* :translate (v- (car (last act-cm-list)) (send *com-robot* :centroid)) :world)
 
          (setq last-cm (car (last act-cm-list)))
@@ -731,7 +734,8 @@
      ;;  ((equal root-mode :ref2act) (send *ref-robot* :move-coords (send (car (send *robot* :links)) :worldcoords) (car (send *ref-robot* :links))))
      ;;  ((equal root-mode :act2ref) (send *robot* :move-coords (send (car (send *ref-robot* :links)) :worldcoords) (car (send *robot* :links)))))
      (cond
-      ((equal root-mode :ref2act) (send *ref-robot* :translate (v- (send (car (send *robot* :links)) :worldpos) (send (car (send *ref-robot* :links)) :worldpos)) :world))
+      ;; ((equal root-mode :ref2act) (send *ref-robot* :translate (v- (send (car (send *robot* :links)) :worldpos) (send (car (send *ref-robot* :links)) :worldpos)) :world))
+      ((equal root-mode :ref2act) (send *ref-robot* :fix-leg-to-coords (avg-coords (mapcar #'(lambda (leg) (send *robot* leg :end-coords :copy-worldcoords)) '(:rleg :lleg)))))
       ((equal root-mode :act2ref) (send *robot* :translate (v- (send (car (send *ref-robot* :links)) :worldpos) (send (car (send *robot* :links)) :worldpos)) :world)))
 
      (set-contact-link-drawing *ref-robot* (get-contact-limbs advance-rs :fz-thresh fz-thresh :frame :ref) :color ref-color :contact-opacity contact-opacity :float-opacity float-opacity)
@@ -742,12 +746,12 @@
      (send (make-coords :pos (car (last act-cm-list))) :draw-on :flush nil :size 100 :color #f(1 1 0))
      (send (send rs :get :auto-balancer-reference-root-coords) :draw-on :flush t)
 
-     (push-back (elt (send rs :get :st-rleg-ref-force) 2) ref-r-fz-list)
-     (push-back (elt (send rs :get :st-lleg-ref-force) 2) ref-l-fz-list)
-     (push-back (elt (send rs :get :rleg-off-force-vector) 2) act-r-fz-list)
-     (push-back (elt (send rs :get :lleg-off-force-vector) 2) act-l-fz-list)
+     ;; (push-back (elt (send rs :get :st-rleg-ref-force) 2) ref-r-fz-list)
+     ;; (push-back (elt (send rs :get :st-lleg-ref-force) 2) ref-l-fz-list)
+     ;; (push-back (elt (send rs :get :rleg-off-force-vector) 2) act-r-fz-list)
+     ;; (push-back (elt (send rs :get :lleg-off-force-vector) 2) act-l-fz-list)
 
-     (push-back (transform (send (send *robot* :gsensor) :worldrot) (send (car (last *rs-list*)) :get :accel-vector)) act-root-accel-list)
+     ;; (push-back (transform (send (send *robot* :gsensor) :worldrot) (send (car (last *rs-list*)) :get :accel-vector)) act-root-accel-list)
 
      (send *irtviewer* :draw-objects :flush nil)
      ;; (send *irtviewer* :draw-objects)
@@ -758,60 +762,60 @@
 
     (warning-message 3 "Stopped at ~a sec (~a)~%" (send rs :time) idx)
 
-    (let ((pos-scale 1) (vel-scale 0.5) (acc-scale 100) (rot-scale 10) (Lscale 10))
-      (setq ref-cmx-list (mapcar #'(lambda (cm) (elt cm 0)) ref-cm-list)
-            act-cmx-list (mapcar #'(lambda (cm) (elt cm 0)) act-cm-list)
-            ref-cmz-list (mapcar #'(lambda (cm) (elt cm 2)) ref-cm-list)
-            act-cmz-list (mapcar #'(lambda (cm) (elt cm 2)) act-cm-list)
-            ref-dcmz-list (mapcar #'(lambda (dcm) (* (elt dcm 2) vel-scale)) ref-dcm-list)
-            act-dcmz-list (mapcar #'(lambda (dcm) (* (elt dcm 2) vel-scale)) act-dcm-list)
-            ref-root-y-list (mapcar #'(lambda (pos) (elt pos 1)) ref-root-pos-list)
-            ref-root-dy-list (mapcar #'(lambda (pos) (elt pos 1)) ref-root-vel-list)
-            ref-lfoot-z-list (mapcar #'(lambda (pos) (* (- (elt pos 2) 4) pos-scale)) ref-lfoot-pos-list)
-            act-lfoot-z-list (mapcar #'(lambda (pos) (* (elt pos 2) pos-scale)) act-lfoot-pos-list)
-            ref-zmp-x-list (mapcar #'(lambda (zmp) (elt zmp 0)) ref-zmp-list)
-            act-zmp-x-list (mapcar #'(lambda (zmp) (elt zmp 0)) act-zmp-list)
-            ref-zmp-y-list (mapcar #'(lambda (zmp) (elt zmp 1)) ref-zmp-list)
-            act-zmp-y-list (mapcar #'(lambda (zmp) (elt zmp 1)) act-zmp-list)
-            act-root-accel-z-list (mapcar #'(lambda (accel) (* (elt accel 2) acc-scale)) act-root-accel-list)
-            ref-lfoot-pi-list (mapcar #'(lambda (rot) (* (rad2deg (elt (car (rpy-angle rot)) 1)) rot-scale)) ref-lfoot-rot-list)
-            act-lfoot-pi-list (mapcar #'(lambda (rot) (* (rad2deg (elt (car (rpy-angle rot)) 1)) rot-scale)) act-lfoot-rot-list)
-            ref-max-edge-y-list (mapcar #'(lambda (e) (elt e 1)) ref-max-edge-list)
-            ref-min-edge-y-list (mapcar #'(lambda (e) (elt e 1)) ref-min-edge-list)
-            ref-lfoot-pi-list (mapcar #'(lambda (rot) (* (rad2deg (elt (car (rpy-angle rot)) 1)) rot-scale)) ref-lfoot-rot-list)
-            act-lfoot-pi-list (mapcar #'(lambda (rot) (* (rad2deg (elt (car (rpy-angle rot)) 1)) rot-scale)) act-lfoot-rot-list)
-            ref-root-pi-list (mapcar #'(lambda (rot) (* (rad2deg (elt (car (rpy-angle rot)) 1)) rot-scale)) ref-root-rot-list)
-            act-root-pi-list (mapcar #'(lambda (rot) (* (rad2deg (elt (car (rpy-angle rot)) 1)) rot-scale)) act-root-rot-list)
-            ref-top-z-list (mapcar #'(lambda (pos) (elt pos 2)) ref-top-pos-list)
-            act-top-z-list (mapcar #'(lambda (pos) (elt pos 2)) act-top-pos-list)
-            ref-Ly-list (mapcar #'(lambda (angular-momentum) (* (elt angular-momentum 1) Lscale)) ref-L-list)
-            act-Ly-list (mapcar #'(lambda (angular-momentum) (* (elt angular-momentum 1) Lscale)) act-L-list))
+    ;; (let ((pos-scale 1) (vel-scale 0.5) (acc-scale 100) (rot-scale 10) (Lscale 10))
+    ;;   (setq ref-cmx-list (mapcar #'(lambda (cm) (elt cm 0)) ref-cm-list)
+    ;;         act-cmx-list (mapcar #'(lambda (cm) (elt cm 0)) act-cm-list)
+    ;;         ref-cmz-list (mapcar #'(lambda (cm) (elt cm 2)) ref-cm-list)
+    ;;         act-cmz-list (mapcar #'(lambda (cm) (elt cm 2)) act-cm-list)
+    ;;         ref-dcmz-list (mapcar #'(lambda (dcm) (* (elt dcm 2) vel-scale)) ref-dcm-list)
+    ;;         act-dcmz-list (mapcar #'(lambda (dcm) (* (elt dcm 2) vel-scale)) act-dcm-list)
+    ;;         ref-root-y-list (mapcar #'(lambda (pos) (elt pos 1)) ref-root-pos-list)
+    ;;         ref-root-dy-list (mapcar #'(lambda (pos) (elt pos 1)) ref-root-vel-list)
+    ;;         ref-lfoot-z-list (mapcar #'(lambda (pos) (* (- (elt pos 2) 4) pos-scale)) ref-lfoot-pos-list)
+    ;;         act-lfoot-z-list (mapcar #'(lambda (pos) (* (elt pos 2) pos-scale)) act-lfoot-pos-list)
+    ;;         ref-zmp-x-list (mapcar #'(lambda (zmp) (elt zmp 0)) ref-zmp-list)
+    ;;         act-zmp-x-list (mapcar #'(lambda (zmp) (elt zmp 0)) act-zmp-list)
+    ;;         ref-zmp-y-list (mapcar #'(lambda (zmp) (elt zmp 1)) ref-zmp-list)
+    ;;         act-zmp-y-list (mapcar #'(lambda (zmp) (elt zmp 1)) act-zmp-list)
+    ;;         act-root-accel-z-list (mapcar #'(lambda (accel) (* (elt accel 2) acc-scale)) act-root-accel-list)
+    ;;         ref-lfoot-pi-list (mapcar #'(lambda (rot) (* (rad2deg (elt (car (rpy-angle rot)) 1)) rot-scale)) ref-lfoot-rot-list)
+    ;;         act-lfoot-pi-list (mapcar #'(lambda (rot) (* (rad2deg (elt (car (rpy-angle rot)) 1)) rot-scale)) act-lfoot-rot-list)
+    ;;         ref-max-edge-y-list (mapcar #'(lambda (e) (elt e 1)) ref-max-edge-list)
+    ;;         ref-min-edge-y-list (mapcar #'(lambda (e) (elt e 1)) ref-min-edge-list)
+    ;;         ref-lfoot-pi-list (mapcar #'(lambda (rot) (* (rad2deg (elt (car (rpy-angle rot)) 1)) rot-scale)) ref-lfoot-rot-list)
+    ;;         act-lfoot-pi-list (mapcar #'(lambda (rot) (* (rad2deg (elt (car (rpy-angle rot)) 1)) rot-scale)) act-lfoot-rot-list)
+    ;;         ref-root-pi-list (mapcar #'(lambda (rot) (* (rad2deg (elt (car (rpy-angle rot)) 1)) rot-scale)) ref-root-rot-list)
+    ;;         act-root-pi-list (mapcar #'(lambda (rot) (* (rad2deg (elt (car (rpy-angle rot)) 1)) rot-scale)) act-root-rot-list)
+    ;;         ref-top-z-list (mapcar #'(lambda (pos) (elt pos 2)) ref-top-pos-list)
+    ;;         act-top-z-list (mapcar #'(lambda (pos) (elt pos 2)) act-top-pos-list)
+    ;;         ref-Ly-list (mapcar #'(lambda (angular-momentum) (* (elt angular-momentum 1) Lscale)) ref-L-list)
+    ;;         act-Ly-list (mapcar #'(lambda (angular-momentum) (* (elt angular-momentum 1) Lscale)) act-L-list))
 
-      (when (and (not repeat) plot)
-        (send *gp* :command "set ytics 100")
-        (graph-view
-         ;; (list ref-cmz-list act-cmz-list)
-         (list ref-cmx-list act-cmx-list
-               ref-cmz-list act-cmz-list ref-dcmz-list act-dcmz-list
-               ref-r-fz-list ref-l-fz-list act-r-fz-list act-l-fz-list
-               ref-lfoot-z-list act-lfoot-z-list act-root-accel-z-list ref-lfoot-pi-list act-lfoot-pi-list
-               ref-root-pi-list act-root-pi-list
-               ref-Ly-list act-Ly-list
-               )
-         tm-list
-         :keylist (list "ref CMx" "act CMx"
-                        "ref CMz" "act CMz" "ref dCMz" "act dCMz"
-                        "ref rFz" "ref lFz" "act rFz" "act lFz"
-                        "ref lz" "act lz" "act root accel z" "ref lpi" "act lpi"
-                        "ref root pi" "act root pi"
-                        "ref Ly" "act Ly"
-                        )
-         :title fname
-         :graph-fname (reg-replace* " " "_" (if add-fname (format nil "~a ~a.eps" fname add-fname) (format nil "~a.eps" fname)))
-         :dump-graph save
-         :xlabel "Time[s]"
-         :ylabel "CMz[mm]"
-         :mode mode
-         )
-        ))
+    ;;   (when (and (not repeat) plot)
+    ;;     (send *gp* :command "set ytics 100")
+    ;;     (graph-view
+    ;;      ;; (list ref-cmz-list act-cmz-list)
+    ;;      (list ref-cmx-list act-cmx-list
+    ;;            ref-cmz-list act-cmz-list ref-dcmz-list act-dcmz-list
+    ;;            ref-r-fz-list ref-l-fz-list act-r-fz-list act-l-fz-list
+    ;;            ref-lfoot-z-list act-lfoot-z-list act-root-accel-z-list ref-lfoot-pi-list act-lfoot-pi-list
+    ;;            ref-root-pi-list act-root-pi-list
+    ;;            ref-Ly-list act-Ly-list
+    ;;            )
+    ;;      tm-list
+    ;;      :keylist (list "ref CMx" "act CMx"
+    ;;                     "ref CMz" "act CMz" "ref dCMz" "act dCMz"
+    ;;                     "ref rFz" "ref lFz" "act rFz" "act lFz"
+    ;;                     "ref lz" "act lz" "act root accel z" "ref lpi" "act lpi"
+    ;;                     "ref root pi" "act root pi"
+    ;;                     "ref Ly" "act Ly"
+    ;;                     )
+    ;;      :title fname
+    ;;      :graph-fname (reg-replace* " " "_" (if add-fname (format nil "~a ~a.eps" fname add-fname) (format nil "~a.eps" fname)))
+    ;;      :dump-graph save
+    ;;      :xlabel "Time[s]"
+    ;;      :ylabel "CMz[mm]"
+    ;;      :mode mode
+    ;;      )
+        ;; ))
   ))
