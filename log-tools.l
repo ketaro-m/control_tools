@@ -194,7 +194,8 @@
   (setq *abc-param* (send *ri* :get-auto-balancer-param))
   (setq *gg-param* (send *ri* :get-gait-generator-param))
   (setq *rfu-param* (send *ri* :get-reference-force-updater-param :arms))
-  (dump-loadable-structure hrpsys-param-fname *st-param* *abc-param* *rfu-param*)
+  (setq *ic-param* (send *ri* :get-impedance-controller-param :arms))
+  (dump-loadable-structure hrpsys-param-fname *st-param* *abc-param* *rfu-param* *ic-param*)
   ))
 
 ;; プロットをアニメーションで表示
@@ -408,11 +409,13 @@
      ;; (send *ref-robot* :angle-vector (send rs :reference-angle-vector))
      ;; (send *ref-robot* :angle-vector (send rs :angle-vector))
      (send *ref-robot* :move-coords (send rs :get :auto-balancer-reference-root-coords) (car (send *ref-robot* :links))) ;; root height 0
+     ;; (send *ref-robot* :fix-leg-to-coords (make-coords))
      (send (send rs :get :auto-balancer-reference-root-coords) :draw-on :flush t)
 
      (send *robot* :angle-vector (send rs :angle-vector))
      ;; (send *robot* :move-coords (send (send (send rs :get :imucoords) :inverse-transformation) :transform (make-coords :rpy (list (deg2rad 180) 0 0))) (car (send *robot* :links)))
      (send *robot* :newcoords (send rs :root-coords))
+     ;; (send *robot* :fix-leg-to-coords (make-coords))
 
      ;; move robot for foot position adjusting
      (send *robot* :translate (v- (send (send *ref-robot* :lleg :end-coords) :worldpos) (send (send *robot* :lleg :end-coords) :worldpos)) :world)
@@ -734,6 +737,7 @@
      ;;  ((equal root-mode :ref2act) (send *ref-robot* :move-coords (send (car (send *robot* :links)) :worldcoords) (car (send *ref-robot* :links))))
      ;;  ((equal root-mode :act2ref) (send *robot* :move-coords (send (car (send *ref-robot* :links)) :worldcoords) (car (send *robot* :links)))))
      (cond
+      ((equal root-mode :real) (send *ref-robot* :fix-leg-to-coords (make-coords)))
       ;; ((equal root-mode :ref2act) (send *ref-robot* :translate (v- (send (car (send *robot* :links)) :worldpos) (send (car (send *ref-robot* :links)) :worldpos)) :world))
       ((equal root-mode :ref2act) (send *ref-robot* :fix-leg-to-coords (avg-coords (mapcar #'(lambda (leg) (send *robot* leg :end-coords :copy-worldcoords)) '(:rleg :lleg)))))
       ((equal root-mode :act2ref) (send *robot* :translate (v- (send (car (send *ref-robot* :links)) :worldpos) (send (car (send *robot* :links)) :worldpos)) :world)))
