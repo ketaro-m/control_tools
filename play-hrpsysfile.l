@@ -94,23 +94,23 @@
     user-name
     ))
 
-;; servo-state判定
-(defun get-servo-states (&key (print nil))
-  (ros::spin-once)
+;; ;; servo-state判定
+;; (defun get-servo-states (&key (print nil))
+;;   (ros::spin-once)
 
-  (let (servo-states)
-    (setq servo-states (coerce (send *servo-state-msg* :states) cons))
-    (when print (warning-message 3 "servo-states: ") (mapc #'(lambda (val) (warning-message 3 " 0x~0,4X" val)) servo-states) (warn "~%"))
-    servo-states
-    )
-  )
+;;   (let (servo-states)
+;;     (setq servo-states (coerce (send *servo-state-msg* :states) cons))
+;;     (when print (warning-message 3 "servo-states: ") (mapc #'(lambda (val) (warning-message 3 " 0x~0,4X" val)) servo-states) (warn "~%"))
+;;     servo-states
+;;     )
+;;   )
 
-(defun is-servo-off (&key (print nil))
-  (if (is-simulation)
-      nil ;; always servo-on in simulation
-    (find t (mapcar #'(lambda (state) (not (zerop (logand state #X0800)))) (get-servo-states :print print)))
-    )
-  )
+;; (defun is-servo-off (&key (print nil))
+;;   (if (is-simulation)
+;;       nil ;; always servo-on in simulation
+;;     (find t (mapcar #'(lambda (state) (not (zerop (logand state #X0800)))) (get-servo-states :print print)))
+;;     )
+;;   )
 
 ;; posファイルの関節数を修正する
 (defun modify-posfile (path fname)
